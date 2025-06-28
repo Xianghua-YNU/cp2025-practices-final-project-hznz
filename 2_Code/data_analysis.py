@@ -1,20 +1,35 @@
-"""
-数据后处理与分析模块：用于对模拟结果进行分析。
-"""
+
 import numpy as np
-import pandas as pd
 
-def analyze_data(data):
-    """
-    示例：对模拟数据进行基本分析。
-    """
-    print("Analyzing data...")
-    # 这里可以进行统计分析、特征提取等
-    # 例如：计算平均值、标准差、拟合曲线等
-    # analyzed_result = {
-    #     'mean': np.mean(data),
-    #     'std': np.std(data)
-    # }
-    return data # 暂时返回原始数据
-
-# 可以添加更多数据分析函数
+def calculate_parameters(H, B):
+    """从磁滞回线计算Bs, Br, Hc"""
+    # 饱和磁感应强度 (正负峰值)
+    Bs_pos = np.max(B)
+    Bs_neg = np.min(B)
+    
+    # 剩磁 (H=0时的B值)
+    # 找到H从正到负穿越0的点
+    zero_crossings = np.where(np.diff(np.sign(H)))[0]
+    if len(zero_crossings) >= 2:
+        idx1, idx2 = zero_crossings[0], zero_crossings[1]
+        Br = np.interp(0, [H[idx1], H[idx2]], [B[idx1], B[idx2]])
+    else:
+        Br = B[np.argmin(np.abs(H))]  # 备用方法
+    
+    # 矫顽力 (B=0时的H值)
+    # 找到B从正到负穿越0的点
+    zero_crossings_b = np.where(np.diff(np.sign(B)))[0]
+    if len(zero_crossings_b) >= 2:
+        idx1, idx2 = zero_crossings_b[0], zero_crossings_b[1]
+        Hc = np.interp(0, [B[idx1], B[idx2]], [H[idx1], H[idx2]])
+    else:
+        Hc = H[np.argmin(np.abs(B))]  # 备用方法
+    
+    return {
+        'Bs+': Bs_pos,
+        'Bs-': Bs_neg,
+        'Br+': Br,
+        'Br-': -Br,  # 对称值
+        'Hc+': abs(Hc),
+        'Hc-': -abs(Hc)
+    }
